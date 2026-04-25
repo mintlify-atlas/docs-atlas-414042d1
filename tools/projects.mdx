@@ -1,0 +1,67 @@
+---
+title: "Project management MCP tools"
+description: "MCP tools for initializing, retrieving, and listing Willet projects. Projects map working directories to isolated SQLite task databases."
+---
+
+Projects are the top-level organizational unit in Willet. Each project is tied to a working directory and backed by its own isolated SQLite database stored at `~/.willet/projects/<id>/tasks.db`. All task operations require a project to exist first.
+
+## Tools
+
+### `init_project`
+
+Initialize a Willet project for the current working directory. If a project already exists for this directory, the existing project is returned.
+
+<ParamField body="name" type="string" required>
+  Display name for the project.
+</ParamField>
+
+### `get_project`
+
+Retrieve a project by ID or by the current working directory. When `project_id` is omitted, Willet resolves the project from the directory where the MCP server process is running.
+
+<ParamField body="project_id" type="string">
+  ULID of the project to retrieve. If omitted, the project associated with the current working directory is returned.
+</ParamField>
+
+### `list_projects`
+
+List all projects known to this Willet instance. Optionally filter by name.
+
+<ParamField body="name" type="string">
+  Filter results to projects whose name contains this string.
+</ParamField>
+
+## Response shape
+
+All three tools return one or more `Project` objects with the following fields.
+
+<ResponseField name="id" type="string" required>
+  ULID identifier for the project. Used as `project_id` in task tools.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Display name set during `init_project`.
+</ResponseField>
+
+<ResponseField name="directory" type="string" required>
+  Absolute path to the working directory this project is bound to.
+</ResponseField>
+
+<ResponseField name="created_at" type="string" required>
+  ISO 8601 UTC timestamp of when the project was created.
+</ResponseField>
+
+<Note>
+  Most task tools accept an optional `project_id`. When omitted, Willet uses the project associated with the current working directory — so you rarely need to pass `project_id` explicitly in a single-project setup.
+</Note>
+
+## Example
+
+```json
+{
+  "id": "01HZ9V3KQRX8D6F2BJNW4Y7M5C",
+  "name": "my-app",
+  "directory": "/home/alice/projects/my-app",
+  "created_at": "2025-06-01T10:00:00.000Z"
+}
+```

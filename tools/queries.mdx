@@ -1,0 +1,201 @@
+---
+title: "List, filter, and search task MCP tools"
+description: "MCP tools for listing tasks with structured filters, searching by text or vector similarity, and retrieving task dependency graphs."
+---
+
+These tools let you retrieve and explore tasks at scale. Use `list_tasks` for structured filtering, `search_tasks` when you want natural-language or keyword-based lookup, `get_task_graph` to traverse linked tasks, and `get_project_stats` or `list_tags` for a high-level view of your project.
+
+## Tools
+
+### `list_tasks`
+
+List tasks with structured filters. Multiple values for `status`, `type`, and `priority` use OR semantics within that field; multiple filter fields use AND semantics.
+
+<ParamField body="project_id" type="string">
+  Project to list tasks from. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="status" type="string | string[]">
+  Filter by status. One or more of: `open`, `in_progress`, `done`, `cancelled`. Passing an array returns tasks matching any of the values.
+</ParamField>
+
+<ParamField body="type" type="string | string[]">
+  Filter by task type. One or more of: `task`, `bug`, `feature`, `epic`.
+</ParamField>
+
+<ParamField body="priority" type="string | string[]">
+  Filter by priority. One or more of: `low`, `medium`, `high`, `urgent`.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Filter to tasks that have all of the specified tags.
+</ParamField>
+
+<ParamField body="parent_task_id" type="string | null">
+  Filter by parent. Pass a task ULID to list subtasks of that task; pass `null` to list only root-level tasks (those with no parent).
+</ParamField>
+
+<ParamField body="assignee" type="string | null">
+  Filter by assignee username, or `null` to list unassigned tasks. **Self-hosted only.**
+</ParamField>
+
+<ParamField body="created_after" type="string">
+  ISO 8601 timestamp. Only return tasks created after this time.
+</ParamField>
+
+<ParamField body="created_before" type="string">
+  ISO 8601 timestamp. Only return tasks created before this time.
+</ParamField>
+
+<ParamField body="completed_after" type="string">
+  ISO 8601 timestamp. Only return tasks completed after this time.
+</ParamField>
+
+<ParamField body="completed_before" type="string">
+  ISO 8601 timestamp. Only return tasks completed before this time.
+</ParamField>
+
+<ParamField body="due_after" type="string">
+  ISO 8601 timestamp. Only return tasks with a due date after this time.
+</ParamField>
+
+<ParamField body="due_before" type="string">
+  ISO 8601 timestamp. Only return tasks with a due date before this time.
+</ParamField>
+
+<ParamField body="sort" type="string">
+  Field to sort by. One of: `created_at`, `updated_at`, `priority`, `status`, `title`, `type`, `due_date`.
+</ParamField>
+
+<ParamField body="sort_direction" type="string">
+  Sort direction. One of: `asc`, `desc`.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="50">
+  Maximum number of tasks to return. Must be a positive integer. Defaults to 50.
+</ParamField>
+
+<ParamField body="offset" type="integer">
+  Number of tasks to skip before returning results. Use with `limit` for pagination.
+</ParamField>
+
+<ParamField body="verbosity" type="string" default="detailed">
+  Controls output detail level. One of: `short`, `detailed`, `full`. See [verbosity modes](/tools/tasks#verbosity-modes).
+</ParamField>
+
+#### Response
+
+Returns an object with two fields:
+
+<ResponseField name="tasks" type="Task[]" required>
+  The matching tasks, projected according to the requested verbosity. Default limit is 50 tasks per request.
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  Total number of tasks that match the filters, regardless of `limit` and `offset`. Use this for pagination.
+</ResponseField>
+
+---
+
+### `search_tasks`
+
+Search tasks by keyword or meaning. Supports three modes: full-text search (FTS5), semantic vector similarity, and hybrid (both combined using reciprocal rank fusion).
+
+<ParamField body="project_id" type="string">
+  Project to search within. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="query" type="string" required>
+  Search query. Must be at least one character.
+</ParamField>
+
+<ParamField body="mode" type="string" default="hybrid">
+  Search mode. One of:
+  - `text` — FTS5 full-text search on title and description.
+  - `semantic` — Vector similarity using local ONNX embeddings (`all-MiniLM-L6-v2`).
+  - `hybrid` — Combines both text and semantic results via reciprocal rank fusion.
+</ParamField>
+
+<ParamField body="status" type="string | string[]">
+  Optionally filter results by status. One or more of: `open`, `in_progress`, `done`, `cancelled`.
+</ParamField>
+
+<ParamField body="type" type="string | string[]">
+  Optionally filter results by task type.
+</ParamField>
+
+<ParamField body="priority" type="string | string[]">
+  Optionally filter results by priority.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="20">
+  Maximum number of results to return. Defaults to 20.
+</ParamField>
+
+<ParamField body="verbosity" type="string" default="detailed">
+  Output verbosity. One of: `short`, `detailed`, `full`.
+</ParamField>
+
+<Note>
+  Semantic search results include a `score` field alongside each task. Higher scores indicate stronger similarity to your query.
+</Note>
+
+---
+
+### `get_task_graph`
+
+Retrieve a task and all linked tasks up to N hops away, returned as a graph of nodes and edges. Useful for understanding dependencies before starting work, or for rendering with `render_dependency_graph`.
+
+<ParamField body="project_id" type="string">
+  Project containing the root task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the root task to start traversal from.
+</ParamField>
+
+<ParamField body="depth" type="integer">
+  Number of link hops to traverse outward from the root task. Must be between 1 and 5.
+</ParamField>
+
+<ParamField body="verbosity" type="string" default="detailed">
+  Output verbosity for task nodes. One of: `short`, `detailed`, `full`.
+</ParamField>
+
+#### Response
+
+<ResponseField name="nodes" type="Task[]" required>
+  All tasks reachable within the specified depth, including the root task. Each task is projected according to the requested verbosity.
+</ResponseField>
+
+<ResponseField name="edges" type="TaskLink[]" required>
+  All links connecting the returned nodes.
+
+  <Expandable title="TaskLink properties">
+    <ResponseField name="id" type="string">ULID of the link record.</ResponseField>
+    <ResponseField name="source_task_id" type="string">ULID of the source task.</ResponseField>
+    <ResponseField name="target_task_id" type="string">ULID of the target task.</ResponseField>
+    <ResponseField name="link_type" type="string">One of: `blocks`, `relates_to`, `duplicates`.</ResponseField>
+    <ResponseField name="created_at" type="string">ISO 8601 UTC timestamp.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+### `get_project_stats`
+
+Get task counts grouped by status, type, and priority for the current project. In MCP clients that support interactive apps (such as Claude Code with MCP Apps), this renders as an interactive dashboard. In other clients, it returns a JSON summary.
+
+<ParamField body="project_id" type="string">
+  Project to summarize. Defaults to the project for the current working directory.
+</ParamField>
+
+---
+
+### `list_tags`
+
+List all tags currently in use across tasks in the project, along with a count of how many tasks carry each tag.
+
+<ParamField body="project_id" type="string">
+  Project to list tags for. Defaults to the project for the current working directory.
+</ParamField>

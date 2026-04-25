@@ -1,0 +1,146 @@
+---
+title: "Deploy Willet for your team with Docker"
+description: "Run Willet as a self-hosted HTTP server using Docker Compose. Add team members with secret-based authentication and manage projects across your team."
+---
+
+The self-hosted Willet server runs via Docker and supports multiple users, each with their own secret key. Your MCP clients connect over HTTP using the streamable-http transport. The Docker image pre-downloads the embedding model at build time, so there's no first-run delay for any user.
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
+
+## Setup
+
+<Steps>
+  <Step title="Create your config file">
+    Create a `willet.toml` file. This defines the server address and one entry per user.
+
+    ```toml willet.toml
+    [server]
+    port = 3000
+    base_url = "http://<server-ip-or-domain>:3000"
+
+    [users.alice]
+    secret = "change-me-to-a-random-string"
+
+    [users.bob]
+    secret = "change-me-to-another-random-string"
+    ```
+
+    Each `[users.<name>]` section defines one user. The `secret` is the key that user will enter when connecting for the first time. Use a long, random string for each user — treat it like a password.
+
+    <Warning>
+      Change all `secret` values before deploying. Do not use the placeholder strings from this example.
+    </Warning>
+  </Step>
+
+  <Step title="Create your Docker Compose file">
+    Create a `docker-compose.yml` file in the same directory as your `willet.toml`:
+
+    ```yaml docker-compose.yml
+    services:
+      willet:
+        build:
+          context: .
+          dockerfile: packages/server/Dockerfile
+        ports:
+          - "3000:3000"
+        volumes:
+          - willet-data:/data
+          - ./willet.toml:/config/willet.toml:ro
+
+    volumes:
+      willet-data:
+    ```
+
+    The `willet-data` named volume persists all task databases across container restarts. The config file is mounted read-only.
+  </Step>
+
+  <Step title="Start the server">
+    Build and start the container in the background:
+
+    ```bash
+    docker compose up -d
+    ```
+
+    The first build downloads the embedding model and bakes it into the image. Subsequent starts are fast.
+
+    To verify the server is running:
+
+    ```bash
+    docker compose logs willet
+    ```
+  </Step>
+
+  <Step title="Configure MCP clients">
+    Each team member adds Willet to their MCP client configuration using the `streamable-http` transport type, pointing at your server's `/mcp` endpoint.
+
+    <Tabs>
+      <Tab title="Claude Code">
+        Add the following to `.mcp.json` in the project directory:
+
+        ```json .mcp.json
+        {
+          "mcpServers": {
+            "willet": {
+              "type": "streamable-http",
+              "url": "http://<server-ip-or-domain>:3000/mcp"
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Claude Desktop">
+        Add the following to the Claude Desktop configuration file:
+
+        ```json claude_desktop_config.json
+        {
+          "mcpServers": {
+            "willet": {
+              "type": "streamable-http",
+              "url": "http://<server-ip-or-domain>:3000/mcp"
+            }
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    Replace `<server-ip-or-domain>:3000` with your actual server address and port.
+  </Step>
+
+  <Step title="User authentication">
+    When a user connects for the first time, their MCP client opens a browser page asking for their secret key. Share the `secret` value from `willet.toml` with each user — that's all they need.
+
+    After entering their secret, the user is authenticated and can use all Willet MCP tools. Credentials are stored by the MCP client so users only need to authenticate once per device.
+
+    <Info>
+      Each user's activity is tracked separately. The `changed_by` field on every task history entry records which user made each change.
+    </Info>
+  </Step>
+</Steps>
+
+## Hot reload
+
+The config file is watched for changes and reloaded automatically. To add or remove a user, edit `willet.toml` and save — no container restart required.
+
+```toml willet.toml
+# Add a new user by appending a new section
+[users.carol]
+secret = "change-me-to-yet-another-random-string"
+```
+
+<Tip>
+  To revoke a user's access, remove their `[users.<name>]` section and save the file. The change takes effect immediately.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="MCP tool reference" icon="wrench" href="/tools/tasks">
+    Explore every MCP tool Willet exposes, with parameters and examples.
+  </Card>
+  <Card title="Export and import" icon="file-zipper" href="/guides/export-import">
+    Back up projects or migrate data between local and self-hosted instances.
+  </Card>
+</CardGroup>

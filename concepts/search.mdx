@@ -1,0 +1,114 @@
+---
+title: "Semantic and text search in Willet"
+description: "Willet supports text (FTS5), semantic (vector similarity), and hybrid search. Find tasks by meaning, not just keywords, using a local ONNX model."
+---
+
+Willet ships with three search modes built into every project database: keyword-based full-text search powered by SQLite FTS5, semantic vector search using a locally-run ONNX embedding model, and a hybrid mode that combines both. All inference runs on your machine — no API key, no network call, no data leaving your environment.
+
+## Three search modes
+
+Search mode is controlled by the `mode` parameter on `search_tasks`, defined by `SearchModeSchema` in `types.ts`.
+
+<CardGroup cols={3}>
+  <Card title="text" icon="magnifying-glass">
+    Full-text search using SQLite FTS5. Fast and keyword-exact. Best when you know the specific words that appear in the task title or description.
+  </Card>
+  <Card title="semantic" icon="brain">
+    Vector similarity search using local ONNX embeddings. Finds tasks by conceptual meaning even when no exact keywords match.
+  </Card>
+  <Card title="hybrid" icon="shuffle">
+    Combines text and semantic results using Reciprocal Rank Fusion (RRF). Recommended for most queries — captures both exact matches and related concepts.
+  </Card>
+</CardGroup>
+
+<Note>
+  The default mode is `hybrid`. You only need to specify `mode` explicitly when you want to force purely keyword or purely semantic behavior.
+</Note>
+
+## How semantic search works
+
+Semantic search converts both your query and every task into high-dimensional vectors, then finds tasks whose vectors are closest to your query vector.
+
+<Steps>
+  <Step title="Text is embedded into a vector">
+    When a task is created or updated, Willet runs its title, description, tags, and comments through the `all-MiniLM-L6-v2` model from HuggingFace. The result is a 384-dimensional `Float32Array`.
+  </Step>
+  <Step title="Embeddings are stored in two places">
+    The raw embedding blob is stored in `task_embeddings` (with a SHA-256 content hash to skip redundant re-embedding). A copy is inserted into the `task_vec` virtual table — a `sqlite-vec` extension table optimized for vector KNN queries.
+  </Step>
+  <Step title="At query time, your input is also embedded">
+    The search query is passed through the same model to produce a query vector.
+  </Step>
+  <Step title="Cosine similarity ranks results">
+    The `task_vec` table finds the nearest neighbors by cosine distance. Results are returned ordered by similarity score (1 = identical, 0 = unrelated).
+  </Step>
+</Steps>
+
+## How hybrid search works
+
+Hybrid mode runs both the FTS5 text query and the vector KNN query in parallel, then merges the two ranked lists using **Reciprocal Rank Fusion (RRF)**.
+
+```
+RRF score = Σ  1 / (k + rank_i)
+```
+
+Each task's positions in the text and semantic result lists are combined into a single score. Tasks that rank well in both lists float to the top. The constant `k = 60` is used to dampen the impact of very high-ranked items. This approach consistently outperforms either signal alone.
+
+## First-run model download
+
+The ONNX embedding model (`all-MiniLM-L6-v2`) is approximately **80 MB** and is downloaded on first use.
+
+<Tabs>
+  <Tab title="Local mode">
+    The model is downloaded automatically to `~/.willet/models/` the first time a semantic or hybrid search (or any task creation) triggers embedding generation. Subsequent runs load the cached model from disk.
+  </Tab>
+  <Tab title="Docker / self-hosted">
+    The Docker image pre-downloads the model during the build step, so no download occurs at runtime. The model is baked into the image layer.
+  </Tab>
+</Tabs>
+
+<Info>
+  The model download happens silently in the background. If the first search feels slow, it is likely downloading the model. Subsequent searches are fast.
+</Info>
+
+## When to use each mode
+
+| Mode | Best for |
+|------|----------|
+| `text` | Exact keyword matches, fast filtering by known terms |
+| `semantic` | Conceptual queries, finding similar issues, natural language questions |
+| `hybrid` | Best overall results — recommended for general use |
+
+## Example agent prompts
+
+These examples show how an AI agent might phrase queries for each mode:
+
+<AccordionGroup>
+  <Accordion title="Hybrid — conceptual query">
+    **Prompt:** "Search for anything related to authentication problems"
+
+    Hybrid mode will match tasks mentioning "login timeout bug", "OAuth token expiry", and "session invalidation" even if none of those exact words appear in your query.
+
+    ```typescript
+    search_tasks({ query: "authentication problems", mode: "hybrid" })
+    ```
+  </Accordion>
+  <Accordion title="Text — keyword filtering">
+    **Prompt:** "Find all high priority tasks about the API"
+
+    Text mode gives fast, exact results when you know the terms that appear in the task data.
+
+    ```typescript
+    search_tasks({ query: "API", mode: "text", priority: "high" })
+    ```
+  </Accordion>
+  <Accordion title="Semantic — finding similar issues">
+    **Prompt:** "Find tasks similar to this crash report: null pointer in request handler"
+
+    Semantic mode finds conceptually related tasks even when the wording differs — for example, surfacing "undefined reference in middleware" as a close match.
+
+    ```typescript
+    search_tasks({ query: "null pointer in request handler", mode: "semantic" })
+    ```
+  </Accordion>
+</AccordionGroup>

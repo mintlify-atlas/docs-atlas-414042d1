@@ -1,0 +1,115 @@
+---
+title: "Task links and comments MCP tools"
+description: "MCP tools for adding comments to tasks and creating typed links — blocking, related, or duplicate. Traverse the resulting graph with get_task_graph."
+---
+
+Links connect tasks in a directed graph. Comments provide a running log of notes, decisions, and context attached to a task. Both are visible when you call `get_task` and can be traversed further with `get_task_graph` and `render_dependency_graph`.
+
+## Link types
+
+| Type | Meaning |
+|---|---|
+| `blocks` | The source task must be completed before the target task can proceed. |
+| `relates_to` | A general relationship — the two tasks are connected but neither blocks the other. |
+| `duplicates` | The source task is a duplicate of the target task. |
+
+Links are directional: `source_task_id` → `target_task_id`. To remove a link, use `unlink_tasks` with the same source, target, and type.
+
+## Tools
+
+### `add_comment`
+
+Add a comment to a task. Comments are returned in chronological order when calling `get_task`.
+
+<ParamField body="project_id" type="string">
+  Project containing the task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the task to comment on.
+</ParamField>
+
+<ParamField body="content" type="string" required>
+  Comment text. Must be at least one character.
+</ParamField>
+
+#### Response
+
+Returns a `TaskComment` object:
+
+<ResponseField name="id" type="string" required>
+  ULID identifier for this comment.
+</ResponseField>
+
+<ResponseField name="task_id" type="string" required>
+  ULID of the task this comment belongs to.
+</ResponseField>
+
+<ResponseField name="content" type="string" required>
+  The comment text.
+</ResponseField>
+
+<ResponseField name="created_at" type="string" required>
+  ISO 8601 UTC timestamp of when the comment was created.
+</ResponseField>
+
+<ResponseField name="created_by" type="string" required>
+  Actor who created the comment. `"local"` for stdio connections; the authenticated username for self-hosted deployments.
+</ResponseField>
+
+---
+
+### `link_tasks`
+
+Create a typed link between two tasks.
+
+<ParamField body="project_id" type="string">
+  Project containing both tasks. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="source_task_id" type="string" required>
+  ULID of the source task (the "from" side of the link).
+</ParamField>
+
+<ParamField body="target_task_id" type="string" required>
+  ULID of the target task (the "to" side of the link).
+</ParamField>
+
+<ParamField body="link_type" type="string" required>
+  Relationship type. One of: `blocks`, `relates_to`, `duplicates`.
+</ParamField>
+
+<Note>
+  You can also create links at task creation time by passing a `links` array to `create_task`. This is convenient when you know the relationships upfront.
+</Note>
+
+---
+
+### `unlink_tasks`
+
+Remove an existing link between two tasks. The source, target, and link type must all match an existing link exactly.
+
+<ParamField body="project_id" type="string">
+  Project containing both tasks. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="source_task_id" type="string" required>
+  ULID of the source task.
+</ParamField>
+
+<ParamField body="target_task_id" type="string" required>
+  ULID of the target task.
+</ParamField>
+
+<ParamField body="link_type" type="string" required>
+  Type of the link to remove. One of: `blocks`, `relates_to`, `duplicates`.
+</ParamField>
+
+---
+
+## Traversing the graph
+
+Once tasks are linked, you can explore the dependency graph using:
+
+- [`get_task_graph`](/tools/queries#get_task_graph) — returns the raw `nodes` and `edges` up to N hops from a root task
+- [`render_dependency_graph`](/tools/visualizations#render_dependency_graph) — renders an interactive force-directed visualization (or a text tree fallback)

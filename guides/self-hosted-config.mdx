@@ -1,0 +1,85 @@
+---
+title: "Configure the Willet self-hosted server"
+description: "Reference for willet.toml configuration options — server port, base URL, and per-user authentication secrets for the self-hosted Willet server."
+---
+
+The Willet self-hosted server is configured through a TOML file named `willet.toml`. The file is divided into a `[server]` section for network settings and one `[users.<name>]` section per user. Every option is required — the server will refuse to start if `port`, `base_url`, or at least one user entry is missing.
+
+## Config file location
+
+The config file is mounted into the Docker container at `/config/willet.toml` as a read-only volume, as shown in the example `docker-compose.yml`:
+
+```yaml docker-compose.yml
+volumes:
+  - willet-data:/data
+  - ./willet.toml:/config/willet.toml:ro
+```
+
+Keep `willet.toml` in the same directory as your `docker-compose.yml` and the mount path will work without changes.
+
+## Hot reload
+
+The server watches `willet.toml` with `fs.watch` and reloads it automatically when the file changes. There is no need to restart the Docker container after editing the config — changes to users or server settings take effect within a second.
+
+<Note>
+  If the reloaded config contains a validation error (for example, a missing secret or duplicate secrets), the server logs the error and continues running with the previous valid configuration.
+</Note>
+
+## [server] section
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `port` | integer | Port the server listens on. Defaults to `3000`. Must match the port exposed in your `docker-compose.yml`. |
+| `base_url` | string | Public URL of the server, used to construct OAuth redirect URLs. Include the protocol and port if non-standard (e.g., `https://willet.example.com`). |
+
+## [users.\<name\>] section
+
+Each user is defined in their own `[users.<name>]` section. The `<name>` key becomes the username recorded in task history — it appears as the `changed_by` value on every change that user makes.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `secret` | string | Authentication secret for this user. Must be unique across all users. |
+
+## Example config
+
+```toml
+[server]
+port = 3000
+base_url = "https://willet.example.com"
+
+[users.alice]
+secret = "change-me-to-a-random-string"
+
+[users.bob]
+secret = "change-me-to-another-random-string"
+```
+
+## Adding users
+
+Add a new `[users.<name>]` section to `willet.toml` with a unique `secret`. The config is reloaded automatically — no restart required.
+
+```toml
+[users.carol]
+secret = "another-unique-random-string"
+```
+
+## Removing users
+
+Remove or comment out the `[users.<name>]` section for the user you want to revoke. The change takes effect immediately after the file is saved.
+
+```toml
+# [users.bob]
+# secret = "change-me-to-another-random-string"
+```
+
+## Security
+
+<Warning>
+  Each user's secret is their only credential. Use long, randomly generated strings — treat them like passwords. Do not reuse secrets across users; the server validates that all secrets are unique and will refuse to load a config where two users share the same secret.
+</Warning>
+
+## Assignee validation
+
+In self-hosted mode, the `assignee` field on tasks must match a username defined in the config file. The server validates this on both task creation and updates, and will reject requests that reference an unknown assignee.
+
+This means that if you remove a user from the config, any attempt to assign new tasks to that username will fail. Existing tasks that already have that username as their assignee are not affected.

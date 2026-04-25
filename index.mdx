@@ -1,133 +1,51 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
-icon: 'star'
+title: "Willet: Task Tracker for AI Agents"
+description: "Willet is a local-first task tracker for AI agents, operated through MCP tools. Give your AI coding agent full project management without leaving the terminal."
 ---
 
-## Setting up
+Willet gives AI agents like Claude Code full project-management capabilities — creating and tracking tasks, managing workflows, linking dependencies, and searching across everything — all through [MCP](https://modelcontextprotocol.io/) tools, without opening a browser or GUI.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Local quickstart" icon="laptop" href="/quickstart-local">
+    Install Willet via npm and connect it to your MCP client in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Self-hosted setup" icon="server" href="/quickstart-self-hosted">
+    Deploy Willet on Docker for multi-user team access with secret-based auth.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="MCP tool reference" icon="wrench" href="/tools/tasks">
+    Explore every MCP tool Willet exposes, with parameters and examples.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Semantic search" icon="magnifying-glass" href="/concepts/search">
+    Learn how Willet's hybrid text and vector search finds tasks by meaning.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What Willet does
 
-Everything you need to create world-class documentation.
+Willet is a task tracker designed specifically for AI coding agents. Instead of a web UI, it exposes a complete set of MCP tools your AI assistant can call directly — creating tasks, tracking progress, linking dependencies, and visualizing your project without switching context.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Tasks and epics" icon="list-check" href="/concepts/tasks">
+    Create tasks, bugs, features, and epics with priorities, estimates, tags, due dates, and full change history.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Dependencies and links" icon="diagram-project" href="/tools/links-comments">
+    Link tasks as blocking, related, or duplicate and traverse the dependency graph across multiple hops.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Visualizations" icon="chart-kanban" href="/tools/visualizations">
+    Render Kanban boards and force-directed dependency graphs directly in your MCP client.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Export and import" icon="file-zipper" href="/guides/export-import">
+    Back up projects or migrate between local and self-hosted instances using ZIP archives.
   </Card>
-</Columns>
+</CardGroup>
 
-## Make your content agent ready
+## Two ways to run
 
-Make your docs work for humans and AI agents alike.
-
-<Columns cols={2}>
-  <Card
-    title="Prompt component"
-    icon="robot"
-    href="/agent-ready/prompt"
-  >
-    Embed shareable AI prompts readers can copy or open in Cursor.
+<CardGroup cols={2}>
+  <Card title="Local (stdio)" icon="terminal" href="/quickstart-local">
+    Install `@willet/mcp` globally via npm. Perfect for personal use with Claude Code. Data stays on your machine.
   </Card>
-  <Card
-    title="Visibility"
-    icon="eye"
-    href="/agent-ready/visibility"
-  >
-    Show different content to humans and agents reading your docs.
+  <Card title="Self-hosted (Docker)" icon="docker" href="/quickstart-self-hosted">
+    Run the Willet server via Docker Compose. Supports multiple users, each with their own secret key.
   </Card>
-  <Card
-    title="Contextual menu"
-    icon="bolt"
-    href="/agent-ready/contextual"
-  >
-    Give readers one-click access to Claude, ChatGPT, Cursor, and more.
-  </Card>
-  <Card
-    title="AI coding tools"
-    icon="wand-magic-sparkles"
-    href="/ai-tools/claude-code"
-  >
-    Set up Claude Code, Cursor, or Windsurf with Mintlify's skill.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+</CardGroup>

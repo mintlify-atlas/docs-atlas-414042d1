@@ -1,0 +1,118 @@
+---
+title: "Tasks, types, and statuses in Willet"
+description: "Learn how Willet organizes work into tasks, bugs, features, and epics with statuses, priorities, estimates, tags, and change history."
+---
+
+Every unit of work in Willet is a **task**. Tasks are flexible enough to represent anything from a one-line fix to a large feature spanning many subtasks. Each task carries a type, status, priority, time estimates, tags, and an automatically maintained change history — giving AI agents and humans a structured, queryable record of all project work.
+
+## Task types
+
+Tasks are classified into four types, defined by `TaskTypeSchema` in `types.ts`.
+
+<CardGroup cols={2}>
+  <Card title="task" icon="circle-check">
+    A general work item. Use this as the default when no more specific type applies.
+  </Card>
+  <Card title="bug" icon="bug">
+    A defect or problem to fix. Signals that something is broken rather than missing.
+  </Card>
+  <Card title="feature" icon="sparkles">
+    New functionality to be added. Distinguishes additions from repairs.
+  </Card>
+  <Card title="epic" icon="layers">
+    A large body of work. Epics can act as parents for many subtasks, grouping related work under a single umbrella.
+  </Card>
+</CardGroup>
+
+## Statuses
+
+Every task moves through a simple lifecycle, defined by `StatusSchema`.
+
+| Status | Meaning |
+|--------|---------|
+| `open` | Not yet started — the default state for new tasks |
+| `in_progress` | Actively being worked on |
+| `done` | Completed; `completed_at` is set automatically |
+| `cancelled` | Abandoned; work will not be done |
+
+<Tip>
+  Use the dedicated workflow tools (`start_task`, `complete_task`, `cancel_task`, `reopen_task`) instead of updating `status` directly. They enforce valid transitions and set timestamps correctly.
+</Tip>
+
+## Priorities
+
+Tasks have one of four priority levels from `PrioritySchema`. The default is `medium`.
+
+| Priority | When to use |
+|----------|-------------|
+| `low` | Nice to have; can wait |
+| `medium` | Normal work (default) |
+| `high` | Important; should be addressed soon |
+| `urgent` | Blocking; needs immediate attention |
+
+## Task fields
+
+The full `Task` interface from `types.ts`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` (ULID) | Unique identifier. ULIDs are lexicographically sortable by creation time and require no coordination across nodes. |
+| `title` | `string` | Short, human-readable name for the task. |
+| `description` | `string` | Full description or notes. Empty string by default. |
+| `status` | `Status` | Current lifecycle state: `open`, `in_progress`, `done`, or `cancelled`. |
+| `type` | `TaskType` | Classification: `task`, `bug`, `feature`, or `epic`. |
+| `priority` | `Priority` | Urgency level: `low`, `medium`, `high`, or `urgent`. |
+| `estimate` | `string \| null` | Time estimate as a free-form string (e.g., `"2h"`, `"3 days"`). |
+| `actual` | `string \| null` | Actual time spent, recorded when completing a task. |
+| `tags` | `string[]` | Array of label strings for filtering and grouping. |
+| `parent_task_id` | `string \| null` | ID of a parent task, if this is a subtask. |
+| `assignee` | `string \| null` | Who the task is assigned to. Only meaningful in self-hosted mode. |
+| `due_date` | `string \| null` | ISO 8601 date string representing the deadline. |
+| `created_at` | `string` | ISO 8601 UTC timestamp of creation. |
+| `updated_at` | `string` | ISO 8601 UTC timestamp of the last modification. |
+| `completed_at` | `string \| null` | ISO 8601 UTC timestamp set when status changes to `done`. |
+| `metadata` | `Record<string, unknown>` | Arbitrary key-value pairs for custom data not covered by other fields. |
+
+<Note>
+  In local mode, the `assignee` field is stripped from all tool responses. It is only present in self-hosted deployments where multiple users are configured.
+</Note>
+
+## Change history
+
+Every modification to a task is automatically recorded in the `task_history` table. You never need to write history entries manually — Willet's query helpers handle this on every update.
+
+Each history record stores:
+
+| Field | Description |
+|-------|-------------|
+| `task_id` | The task that was changed |
+| `field_changed` | Name of the field that changed (e.g., `"status"`, `"priority"`) |
+| `old_value` | The previous value, serialized as a string |
+| `new_value` | The new value, serialized as a string |
+| `changed_at` | ISO 8601 UTC timestamp of the change |
+| `changed_by` | Identity of the actor who made the change |
+
+The `changed_by` value depends on the deployment mode:
+
+- **Local mode** — always `"local"`
+- **Self-hosted mode** — the authenticated username from the HTTP request context
+
+To retrieve history for a task, use `get_task` with `include_history: true`.
+
+## Subtasks
+
+Any task can become a subtask by setting its `parent_task_id` to the ID of another task. This creates a parent–child hierarchy with no enforced depth limit, though epics are the conventional parent type for grouping large work.
+
+To work with subtasks:
+
+- **List subtasks** — call `list_tasks` with `parent_task_id` set to the parent's ID
+- **Get a task with its subtasks** — call `get_task` with `include_subtasks: true`
+- **List only top-level tasks** — call `list_tasks` with `parent_task_id: null`
+
+```typescript
+// Fetch a task and all its direct subtasks
+get_task({ task_id: "01HX...", include_subtasks: true })
+
+// List all subtasks of a specific parent
+list_tasks({ parent_task_id: "01HX..." })
+```

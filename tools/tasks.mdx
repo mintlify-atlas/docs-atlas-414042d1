@@ -1,0 +1,195 @@
+---
+title: "Create and update task MCP tools"
+description: "MCP tools for creating, reading, updating, and deleting Willet tasks. Includes full parameter reference for task fields and verbosity modes."
+---
+
+These tools cover the full CRUD lifecycle for individual tasks. Use them to create work items, inspect their current state, modify fields, or remove them permanently. For status transitions (starting, completing, cancelling), see [Task lifecycle tools](/tools/task-lifecycle).
+
+## Tools
+
+### `create_task`
+
+Create a new task. Returns the created `Task` object.
+
+<ParamField body="project_id" type="string">
+  Project to create the task in. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Short title for the task. Must be at least one character.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Full description. Supports multi-line text.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Initial status. One of: `open`, `in_progress`, `done`, `cancelled`. Defaults to `open` if omitted.
+</ParamField>
+
+<ParamField body="type" type="string">
+  Task type. One of: `task`, `bug`, `feature`, `epic`.
+</ParamField>
+
+<ParamField body="priority" type="string">
+  Priority level. One of: `low`, `medium`, `high`, `urgent`.
+</ParamField>
+
+<ParamField body="estimate" type="string">
+  Time estimate in any human-readable format, e.g. `"2h"`, `"3 days"`, `"1 sprint"`.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  List of tag strings to attach to the task.
+</ParamField>
+
+<ParamField body="parent_task_id" type="string">
+  ULID of a parent task. Setting this makes the new task a subtask of the specified parent.
+</ParamField>
+
+<ParamField body="due_date" type="string">
+  ISO 8601 due date, e.g. `"2025-07-01T00:00:00.000Z"`.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Arbitrary key-value pairs for custom data. Values can be any JSON-serializable type.
+</ParamField>
+
+<ParamField body="links" type="array">
+  Links to other tasks to create at the same time as this task.
+
+  <Expandable title="link object properties">
+    <ParamField body="target_task_id" type="string" required>
+      ULID of the task to link to.
+    </ParamField>
+    <ParamField body="link_type" type="string" required>
+      Relationship type. One of: `blocks`, `relates_to`, `duplicates`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="initial_comment" type="string">
+  A comment to attach to the task immediately after creation.
+</ParamField>
+
+<ParamField body="assignee" type="string">
+  Username to assign this task to. **Self-hosted only** — must match a username configured on the server. Not available in local mode.
+</ParamField>
+
+---
+
+### `update_task`
+
+Update one or more fields of an existing task. Only the fields you provide are changed. Nullable fields can be set to `null` to clear them.
+
+<ParamField body="project_id" type="string">
+  Project containing the task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the task to update.
+</ParamField>
+
+<ParamField body="title" type="string">
+  New title. Must be at least one character if provided.
+</ParamField>
+
+<ParamField body="description" type="string">
+  New description.
+</ParamField>
+
+<ParamField body="type" type="string">
+  New task type. One of: `task`, `bug`, `feature`, `epic`.
+</ParamField>
+
+<ParamField body="priority" type="string">
+  New priority. One of: `low`, `medium`, `high`, `urgent`.
+</ParamField>
+
+<ParamField body="estimate" type="string | null">
+  New time estimate, or `null` to clear it.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Replacement tag list. Replaces all existing tags.
+</ParamField>
+
+<ParamField body="parent_task_id" type="string | null">
+  New parent task ULID to reparent this task, or `null` to promote it to a root task.
+</ParamField>
+
+<ParamField body="due_date" type="string | null">
+  New ISO 8601 due date, or `null` to clear it.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Replacement metadata object. Replaces the entire metadata record.
+</ParamField>
+
+<ParamField body="assignee" type="string | null">
+  New assignee username, or `null` to unassign. **Self-hosted only.**
+</ParamField>
+
+<Note>
+  `update_task` does not change `status`. Use `start_task`, `complete_task`, `cancel_task`, or `reopen_task` for status transitions — these are recorded separately in the task's change history.
+</Note>
+
+---
+
+### `get_task`
+
+Retrieve a single task by ID. Comments and links are always included. Change history and subtasks are opt-in.
+
+<ParamField body="project_id" type="string">
+  Project containing the task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the task to retrieve.
+</ParamField>
+
+<ParamField body="include_history" type="boolean">
+  When `true`, includes a `history` array of `TaskHistory` entries recording every field change.
+</ParamField>
+
+<ParamField body="include_subtasks" type="boolean">
+  When `true`, includes a `subtasks` array of child tasks.
+</ParamField>
+
+<ParamField body="verbosity" type="string" default="full">
+  Controls how much of each task is included in the response. See [verbosity modes](#verbosity-modes) below.
+</ParamField>
+
+---
+
+### `delete_task`
+
+Permanently delete a task and all its associated data — comments, links, and history rows. This action cannot be undone.
+
+<ParamField body="project_id" type="string">
+  Project containing the task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the task to delete.
+</ParamField>
+
+<Warning>
+  Deleting a task also removes all its comments, links, and change history. Subtasks are not automatically deleted but will lose their `parent_task_id` reference.
+</Warning>
+
+---
+
+## Verbosity modes
+
+Task-reading tools accept a `verbosity` parameter to control how much data is returned per task. This is especially useful when operating on large lists.
+
+| Mode | Fields returned | Description |
+|---|---|---|
+| `short` | `id`, `title` (≤80 chars), `status`, `type`, `priority`, `estimate`, `tags` (up to 5), `due_date` | Compact representation for triage. Titles are truncated at 80 characters; tags beyond 5 are replaced with a `"+N more"` sentinel. |
+| `detailed` | All fields, `description` truncated to 200 chars | Default for list operations. Gives full context without overwhelming long descriptions. |
+| `full` | All fields, no truncation | Default for `get_task`. Returns the complete task exactly as stored. |
+
+<Tip>
+  Use `short` verbosity when scanning many tasks and `full` when you need to act on a specific task's description or metadata.
+</Tip>

@@ -1,0 +1,91 @@
+---
+title: "Connect Willet to your MCP client"
+description: "Configure Willet as an MCP server in Claude Code, Claude Desktop, or any MCP-compatible client using stdio or streamable HTTP transport."
+---
+
+Willet supports two transport modes depending on how you run it. In **local mode**, Willet runs as a subprocess of your MCP client using stdio — no network required, data stays on your machine. In **self-hosted mode**, a persistent server handles connections over streamable HTTP, enabling multiple users to share the same instance.
+
+## Local mode (stdio)
+
+Install the `@willet/mcp` package globally, then add the following configuration to your MCP client. In local mode, your client starts `willet-mcp` as a subprocess automatically.
+
+<Tabs>
+  <Tab title="Claude Code">
+    Add the following to your `.mcp.json` file (project-level or user-level):
+
+    ```json .mcp.json
+    {
+      "mcpServers": {
+        "willet": {
+          "command": "willet-mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Claude Desktop">
+    Add the following to your `claude_desktop_config.json`:
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "willet": {
+          "command": "willet-mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  On first run, Willet downloads the embedding model (~80 MB) to `~/.willet/models/`. This is a one-time download and subsequent starts are immediate.
+</Note>
+
+## Self-hosted mode (streamable HTTP)
+
+If you are running the Willet server (via Docker), configure your MCP client to connect over streamable HTTP instead. Replace `<server-ip-or-domain>` with the address where your server is running.
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```json .mcp.json
+    {
+      "mcpServers": {
+        "willet": {
+          "type": "streamable-http",
+          "url": "http://<server-ip-or-domain>:3000/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Claude Desktop">
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "willet": {
+          "type": "streamable-http",
+          "url": "http://<server-ip-or-domain>:3000/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### First connection to self-hosted
+
+When a user connects to a self-hosted Willet server for the first time, their MCP client will open a page in the browser asking for a secret key. Share the `secret` value from the relevant `[users.<name>]` section of your `willet.toml` with each user — that is all they need to authenticate.
+
+<Tip>
+  See [Configure the Willet self-hosted server](/guides/self-hosted-config) for instructions on setting up users and secrets.
+</Tip>
+
+## Any MCP-compatible client
+
+Willet follows the MCP specification and works with any client that supports the appropriate transport:
+
+- **stdio** — for local mode with any MCP client that can launch a subprocess
+- **streamable HTTP** — for self-hosted mode with any MCP client that supports the streamable HTTP transport
+
+If your client supports MCP but is not listed above, use the same JSON structure shown in the tabs above. The `command` field is used for stdio clients; the `type: "streamable-http"` and `url` fields are used for HTTP clients.

@@ -1,0 +1,109 @@
+---
+title: "Kanban board and dependency graph MCP tools"
+description: "MCP tools for rendering Kanban boards and force-directed dependency graphs. Returns interactive UIs in supported clients, text fallbacks elsewhere."
+---
+
+These tools render visual representations of your tasks. In MCP clients that support interactive apps (such as Claude Code with MCP Apps enabled), they return a live, interactive UI. In all other clients, they return plain text or Markdown that the agent should display directly to the user.
+
+<Info>
+  When your client does not support MCP Apps, display the returned text content exactly as-is — do not reformat or summarize it.
+</Info>
+
+## Tools
+
+### `render_task_board`
+
+Render tasks as a Kanban board grouped by status, priority, or type. The board is capped at 200 tasks.
+
+**In supporting clients:** renders an interactive Kanban board where cards can be inspected and columns scrolled.
+
+**In other clients:** returns a Markdown table with tasks grouped under headings for each column value (e.g. `## open (12)`).
+
+<ParamField body="project_id" type="string">
+  Project to render the board for. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="group_by" type="string" default="status">
+  Dimension to group tasks by. One of: `status`, `priority`, `type`.
+
+  | Value | Column order |
+  |---|---|
+  | `status` | `open` → `in_progress` → `done` → `cancelled` |
+  | `priority` | `urgent` → `high` → `medium` → `low` |
+  | `type` | `epic` → `feature` → `task` → `bug` |
+</ParamField>
+
+<ParamField body="status" type="string | string[]">
+  Filter the board to only show tasks with these statuses.
+</ParamField>
+
+<ParamField body="type" type="string | string[]">
+  Filter the board to only show tasks of these types.
+</ParamField>
+
+<ParamField body="priority" type="string | string[]">
+  Filter the board to only show tasks with these priorities.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Filter the board to only show tasks that carry all of the specified tags.
+</ParamField>
+
+<Warning>
+  The board is limited to 200 tasks. Apply filters to narrow the result set if your project has more tasks than this.
+</Warning>
+
+---
+
+### `render_dependency_graph`
+
+Render a dependency graph centered on a specific task, showing how it connects to other tasks through links. Internally, this calls `get_task_graph` and wraps the result in a visualization layer.
+
+**In supporting clients:** renders an interactive force-directed graph where nodes represent tasks and edges represent typed links. Nodes can be dragged to explore the layout.
+
+**In other clients:** returns an indented text tree showing the root task and its neighbors, with link types and directions annotated inline.
+
+<ParamField body="project_id" type="string">
+  Project containing the root task. Defaults to the project for the current working directory.
+</ParamField>
+
+<ParamField body="task_id" type="string" required>
+  ULID of the task to center the graph on.
+</ParamField>
+
+<ParamField body="depth" type="integer" default="2">
+  Number of link hops to traverse from the root task. Must be between 1 and 5. Higher values include more of the surrounding dependency network.
+</ParamField>
+
+---
+
+## Text fallback examples
+
+When your client does not render interactive apps, both tools return human-readable text. Here is an example of each fallback format.
+
+<CodeGroup>
+
+```text render_task_board (text fallback)
+## open (3)
+
+| ID | Title | Priority | Type | Estimate |
+|---|---|---|---|---|
+| 9V3KQR8D | Implement auth flow | high | feature | 3h |
+| 9V3KQR9A | Fix login redirect | medium | bug | 1h |
+| 9V3KQRA2 | Write API docs | low | task | - |
+
+## in_progress (1)
+
+| ID | Title | Priority | Type | Estimate |
+|---|---|---|---|---|
+| 9V3KQR7B | Set up CI pipeline | urgent | task | 2h |
+```
+
+```text render_dependency_graph (text fallback)
+Set up CI pipeline [in_progress] (9V3KQR7B)
+  → blocks → Deploy to staging [open] (9V3KQRB3)
+    → blocks → Run smoke tests [open] (9V3KQRC1)
+  ← relates_to ← Implement auth flow [open] (9V3KQR8D)
+```
+
+</CodeGroup>

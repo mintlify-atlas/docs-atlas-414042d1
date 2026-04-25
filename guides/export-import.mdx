@@ -1,0 +1,104 @@
+---
+title: "Export and import Willet projects"
+description: "Back up projects or migrate between local and self-hosted Willet instances using ZIP archives that include all tasks, comments, and history."
+---
+
+Willet supports exporting and importing projects as ZIP archives, giving you full control over your data. Use exports to create backups, move projects between machines, or migrate between local and self-hosted instances. The export format is identical for both versions, so migration in either direction is straightforward.
+
+## What's included in an export
+
+Every export archive contains the complete state of a project:
+
+- **Tasks** — all task fields, types, priorities, statuses, tags, and metadata
+- **Comments** — all comments attached to tasks
+- **Links** — subtask relationships, dependency links, and duplicate links
+- **Change history** — the full audit log of every state change, including what changed, old and new values, timestamps, and the `changed_by` user
+- **Project metadata** — project name and configuration
+
+## Local export and import
+
+The `@willet/mcp` package installs two CLI tools — `willet-export` and `willet-import` — alongside the MCP server binary.
+
+### Export
+
+```bash
+willet-export --project <project-id> --output my-project.zip
+```
+
+If you only have one project, the `--project` flag can be omitted:
+
+```bash
+willet-export --output my-project.zip
+```
+
+### Import
+
+```bash
+# Import as a new project
+willet-import my-project.zip
+
+# Import into an existing project
+willet-import my-project.zip --project <project-id>
+```
+
+## Self-hosted export and import
+
+For self-hosted deployments, use `docker compose exec` to run the export and import commands inside the container, then copy the archive in or out with `docker compose cp`.
+
+### Export
+
+```bash
+docker compose exec willet /app/docker-entrypoint.sh export --project <project-id> --output /data/export.zip
+docker compose cp willet:/data/export.zip ./export.zip
+```
+
+### Import
+
+```bash
+docker compose cp my-project.zip willet:/data/my-project.zip
+docker compose exec willet /app/docker-entrypoint.sh import /data/my-project.zip
+```
+
+## Migrating between local and self-hosted
+
+Because the export format is the same for both versions, you can move projects freely in either direction.
+
+### Local to self-hosted
+
+<Steps>
+  <Step title="Export from your local instance">
+    ```bash
+    willet-export --output my-project.zip
+    ```
+  </Step>
+  <Step title="Copy the archive into the container">
+    ```bash
+    docker compose cp my-project.zip willet:/data/my-project.zip
+    ```
+  </Step>
+  <Step title="Import into the self-hosted server">
+    ```bash
+    docker compose exec willet /app/docker-entrypoint.sh import /data/my-project.zip
+    ```
+  </Step>
+</Steps>
+
+### Self-hosted to local
+
+<Steps>
+  <Step title="Export from the self-hosted server">
+    ```bash
+    docker compose exec willet /app/docker-entrypoint.sh export --project <project-id> --output /data/export.zip
+    ```
+  </Step>
+  <Step title="Copy the archive to your machine">
+    ```bash
+    docker compose cp willet:/data/export.zip ./export.zip
+    ```
+  </Step>
+  <Step title="Import into your local instance">
+    ```bash
+    willet-import export.zip
+    ```
+  </Step>
+</Steps>

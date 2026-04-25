@@ -1,0 +1,96 @@
+---
+title: "How Willet manages projects"
+description: "Each Willet project is isolated in its own SQLite database, mapped to a working directory. Learn how projects work in local and server modes."
+---
+
+Willet gives every project its own SQLite database. There is no shared schema, no cross-project table, and no risk of one project's data interfering with another's. Each database file is small, portable, and trivial to back up or delete. This design works equally well for a solo developer tracking a single repository and a team running a self-hosted instance with many projects.
+
+## How projects work
+
+<Steps>
+  <Step title="A project gets a unique ID">
+    When you call `init_project`, Willet generates a ULID as the project's `id`. ULIDs are time-sortable and globally unique without any coordination.
+  </Step>
+  <Step title="The project is mapped to a working directory">
+    The project is registered with the absolute path of the current working directory (`process.cwd()`). This mapping is stored in the registry database.
+  </Step>
+  <Step title="A dedicated task database is created">
+    Willet creates `~/.willet/projects/<id>/tasks.db` and applies the full schema (tasks, history, links, comments, embeddings, FTS5, and vector tables).
+  </Step>
+</Steps>
+
+## Working directory resolution
+
+When you call any Willet tool, it needs to know which project to operate on. The resolution order is:
+
+1. **Explicit `project_id`** — if you pass `project_id` in the tool input, that project is used directly.
+2. **Current working directory** — Willet looks up the registry for a project whose `directory` matches `process.cwd()`.
+3. **Single-project fallback** — if only one project exists in the registry, it is used automatically.
+
+If none of these match and multiple projects exist, Willet returns an error listing all known projects so you can pass the correct `project_id`.
+
+<Tip>
+  Pass `project_id` explicitly when automating tasks across multiple repositories or when the current directory might not match the intended project.
+</Tip>
+
+## Project data
+
+Each `tasks.db` file contains everything for that project:
+
+- **Tasks** — the core work items with all fields
+- **Task history** — a record of every field change
+- **Task links** — directed relationships between tasks (`blocks`, `relates_to`, `duplicates`)
+- **Task comments** — threaded notes on individual tasks
+- **Embeddings** — vector representations used for semantic search
+
+The registry (`registry.db`) holds only the project index: `id`, `name`, `directory`, and `created_at`.
+
+## Data storage paths
+
+<Tabs>
+  <Tab title="Local (stdio)">
+    All data lives under `~/.willet/` in your home directory.
+
+    ```
+    ~/.willet/
+    ├── registry.db                  # Maps directories → project IDs
+    └── projects/
+        ├── 01HX.../
+        │   └── tasks.db             # All task data for this project
+        └── 01HY.../
+            └── tasks.db
+    ```
+
+    The base directory can be overridden by setting the `WILLET_DATA_DIR` environment variable.
+  </Tab>
+  <Tab title="Self-hosted (Docker)">
+    The Docker image mounts a `/data` volume. The layout is identical but rooted at `/data` instead of `~/.willet/`.
+
+    ```
+    /data/
+    ├── registry.db
+    └── projects/
+        └── 01HX.../
+            └── tasks.db
+    ```
+
+    Mount a persistent volume to `/data` in your `docker-compose.yml` to preserve data across container restarts.
+  </Tab>
+</Tabs>
+
+| | Local | Self-hosted |
+|-|-------|-------------|
+| **Base path** | `~/.willet/` | `/data/` |
+| **Override** | `WILLET_DATA_DIR` env var | Docker volume mount |
+| **Registry** | `registry.db` | `registry.db` |
+| **Project data** | `projects/<id>/tasks.db` | `projects/<id>/tasks.db` |
+| **Model cache** | `~/.willet/models/` | Pre-downloaded in image |
+
+## Per-project isolation
+
+Because each project's data is a single `.db` file:
+
+- **No cross-project interference** — queries, searches, and history are fully scoped to one project.
+- **Easy backups** — copy `~/.willet/projects/<id>/tasks.db` to back up a project.
+- **Easy deletion** — remove the `.db` file and the registry row to permanently delete a project.
+- **Portable** — move the file to another machine and re-register it with `init_project` pointing to the same directory.

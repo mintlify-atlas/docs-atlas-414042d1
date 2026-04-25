@@ -1,0 +1,141 @@
+---
+title: "Get started with Willet locally"
+description: "Install Willet on your machine via npm, connect it to Claude Code or Claude Desktop, and create your first task in under 5 minutes."
+---
+
+Willet's local mode runs entirely on your machine via stdio. Your AI agent connects to the `willet-mcp` process directly — no server, no network, no configuration beyond adding one entry to your MCP client config.
+
+## Prerequisites
+
+Node.js 20 or later is required. Check your version:
+
+```bash
+node --version
+```
+
+## Setup
+
+<Steps>
+  <Step title="Install Willet">
+    Install the `@willet/mcp` package globally. This provides three CLI tools: `willet-mcp`, `willet-export`, and `willet-import`.
+
+    <CodeGroup>
+
+    ```bash npm
+    npm install -g @willet/mcp
+    ```
+
+    ```bash pnpm
+    pnpm add -g @willet/mcp
+    ```
+
+    ```bash yarn
+    yarn global add @willet/mcp
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Configure your MCP client">
+    Add Willet to your MCP client's configuration file.
+
+    <Tabs>
+      <Tab title="Claude Code">
+        Add the following to your `.mcp.json` file in your project directory (or create one if it doesn't exist):
+
+        ```json .mcp.json
+        {
+          "mcpServers": {
+            "willet": {
+              "command": "willet-mcp"
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Claude Desktop">
+        Add the following to your Claude Desktop configuration file:
+
+        ```json claude_desktop_config.json
+        {
+          "mcpServers": {
+            "willet": {
+              "command": "willet-mcp"
+            }
+          }
+        }
+        ```
+
+        <Note>
+          On macOS, the Claude Desktop config file is located at `~/Library/Application Support/Claude/claude_desktop_config.json`.
+        </Note>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="First run: embedding model download">
+    On first run, Willet downloads the [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embedding model (~80 MB) to `~/.willet/models/`. This is a one-time download — subsequent starts use the cached model.
+
+    <Info>
+      The embedding model enables semantic search. It runs locally using ONNX runtime, so no data leaves your machine.
+    </Info>
+  </Step>
+
+  <Step title="Initialize a project">
+    Once your MCP client is connected, ask your AI agent to set up a Willet project. Willet automatically associates the project with your current working directory.
+
+    Example prompts to get started:
+
+    ```text
+    Initialize a Willet project called My App
+    ```
+
+    ```text
+    Set up a Willet project for this repository
+    ```
+  </Step>
+
+  <Step title="Create your first task">
+    Now you can ask your agent to create and manage tasks using natural language:
+
+    ```text
+    Create a bug for the login timeout issue, high priority
+    ```
+
+    ```text
+    Show me all open tasks tagged 'backend'
+    ```
+
+    ```text
+    What tasks are blocking the auth epic?
+    ```
+
+    ```text
+    Search for anything related to authentication problems
+    ```
+  </Step>
+</Steps>
+
+## Data storage
+
+All data stays on your machine:
+
+| Location | Contents |
+|---|---|
+| `~/.willet/registry.db` | Maps working directories to projects |
+| `~/.willet/projects/<id>/tasks.db` | One SQLite database per project |
+| `~/.willet/models/` | Cached ONNX embedding model |
+
+## CLI tools
+
+Installing `@willet/mcp` provides three CLI commands:
+
+| Command | Description |
+|---|---|
+| `willet-mcp` | The MCP server process (used by your MCP client config) |
+| `willet-export` | Export a project to a ZIP archive |
+| `willet-import` | Import a project from a ZIP archive |
+
+<Tip>
+  See the [export and import guide](/guides/export-import) to learn how to back up your projects or move data between local and self-hosted instances.
+</Tip>

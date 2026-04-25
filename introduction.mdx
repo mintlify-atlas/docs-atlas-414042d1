@@ -1,0 +1,54 @@
+---
+title: "Willet: MCP task tracking for AI coding agents"
+description: "Willet is a task tracker built for AI agents. Manage tasks, epics, dependencies, and search — all through MCP tools, no browser required."
+---
+
+Willet is a task tracker built for AI agents. Instead of a web UI, it exposes a complete set of [MCP](https://modelcontextprotocol.io/) tools your AI assistant can call directly — creating tasks, tracking progress, linking dependencies, and visualizing your project without leaving the terminal. Each project gets its own SQLite database, so data stays local, isolated, and easy to back up.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Tasks and epics" icon="list-check" href="/concepts/tasks">
+    Create tasks, bugs, features, and epics with priorities, estimates, tags, due dates, and full change history.
+  </Card>
+  <Card title="Semantic search" icon="magnifying-glass" href="/concepts/search">
+    A local embedding model understands meaning, not just keywords. Search for "authentication problems" and find a task titled "login timeout bug."
+  </Card>
+  <Card title="Visualizations" icon="chart-kanban" href="/tools/visualizations">
+    Render Kanban boards and force-directed dependency graphs directly in your MCP client.
+  </Card>
+  <Card title="Export and import" icon="file-zipper" href="/guides/export-import">
+    Back up projects or migrate between local and self-hosted instances using ZIP archives.
+  </Card>
+</CardGroup>
+
+## Two ways to run
+
+Willet runs locally on your machine or as a self-hosted server for your team.
+
+| | **Local** | **Self-hosted** |
+|---|---|---|
+| **Users** | Single user | Multi-user with per-user auth |
+| **Install** | `npm install` | Docker |
+| **Best for** | Personal use with Claude Code | Teams sharing a task server |
+
+<CardGroup cols={2}>
+  <Card title="Local quickstart" icon="laptop" href="/quickstart-local">
+    Install `@willet/mcp` globally via npm. Data stays on your machine in SQLite databases.
+  </Card>
+  <Card title="Self-hosted quickstart" icon="server" href="/quickstart-self-hosted">
+    Run the Willet server via Docker Compose. Supports multiple users, each with their own secret key.
+  </Card>
+</CardGroup>
+
+## How it works
+
+Your AI agent communicates with Willet through standard MCP tool calls. When your agent calls a tool — such as creating a task or searching for related issues — Willet handles all the database operations and returns structured results the agent can reason about.
+
+Each project is stored as a separate SQLite database under `~/.willet/projects/<id>/tasks.db`. A registry database at `~/.willet/registry.db` maps your working directories to their respective projects, so Willet always knows which project is active based on where you are.
+
+Semantic search is powered by a local [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) ONNX embedding model. It runs entirely on your machine — no data leaves your environment.
+
+## License
+
+Willet is licensed under [AGPL-3.0](https://github.com/SeriousBug/willet/blob/main/LICENSE).

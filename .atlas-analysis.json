@@ -1,0 +1,101 @@
+{
+  "projectType": "saas",
+  "projectName": "Willet",
+  "projectDescription": "A local-first task tracker for AI agents, operated entirely through MCP tools — no browser, no GUI, just your AI assistant managing tasks alongside your code.",
+  "theme": "luma",
+  "primaryColor": "#848c8e",
+  "lightColor": "#11161e",
+  "darkColor": "#cfd0d2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart-local",
+              "quickstart-self-hosted"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/tasks",
+              "concepts/projects",
+              "concepts/search"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/mcp-clients",
+              "guides/export-import",
+              "guides/self-hosted-config"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "MCP Tool Reference",
+        "groups": [
+          {
+            "group": "Project Tools",
+            "pages": [
+              "tools/projects"
+            ]
+          },
+          {
+            "group": "Task Tools",
+            "pages": [
+              "tools/tasks",
+              "tools/task-lifecycle",
+              "tools/links-comments"
+            ]
+          },
+          {
+            "group": "Query & Visualization",
+            "pages": [
+              "tools/queries",
+              "tools/visualizations"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Full task lifecycle management with types (task, bug, feature, epic), priorities, estimates, tags, and custom metadata",
+    "Subtasks and task linking with blocks, relates_to, and duplicates relationships",
+    "Semantic search using local all-MiniLM-L6-v2 ONNX embedding model with hybrid FTS5 + vector mode",
+    "Interactive visualizations: Kanban boards, force-directed dependency graphs, and project dashboards",
+    "Per-project SQLite isolation — each project gets its own database",
+    "Two deployment modes: local stdio (npm install) and self-hosted Docker with multi-user OAuth auth",
+    "Full data portability via ZIP archive export and import",
+    "Full change history — every task mutation recorded with what changed, old/new values, timestamp, and actor"
+  ],
+  "publicApiSurface": [
+    "init_project — Initialize a Willet project for the current working directory",
+    "get_project — Get the project for the current directory or by project_id",
+    "list_projects — List all projects, optionally filtered by name",
+    "create_task — Create a new task with optional links and initial comment",
+    "update_task — Update an existing task's fields",
+    "get_task — Get a task by ID with comments, links, optional history and subtasks",
+    "delete_task — Delete a task and all its related data",
+    "start_task — Set a task's status to in_progress",
+    "complete_task — Mark a task as done",
+    "cancel_task — Cancel a task",
+    "reopen_task — Reopen a completed or cancelled task",
+    "list_tasks — List tasks with structured filtering (status, type, priority, tags, dates, parent)",
+    "search_tasks — Search tasks using text (FTS5), semantic (vector), or hybrid mode",
+    "get_task_graph — Get a task and all linked tasks up to N hops out",
+    "get_project_stats — Get task counts grouped by status, type, and priority",
+    "list_tags — List all tags in use with their task counts",
+    "add_comment — Add a comment to a task",
+    "link_tasks — Create a link between two tasks (blocks, relates_to, duplicates)",
+    "unlink_tasks — Remove a link between two tasks",
+    "render_task_board — Render a Kanban board grouped by status, priority, or type",
+    "render_dependency_graph — Render a dependency graph showing task relationships"
+  ]
+}
